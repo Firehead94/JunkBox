@@ -1,0 +1,260 @@
+<?php
+
+// Function create a DB connection
+
+function connectToDB()
+{   
+    global $conn;
+    
+    $servername = "localhost";
+    $username = "nsoltysiak";  
+    $password = "18password19";
+    $dbname = "nsoltysiak"; 
+    
+    //echo "DEBUG: Connecting to DB <br>";
+	$conn = new mysqli($servername, $username, $password, $dbname);
+    
+    if ($conn->connect_error) 
+    {
+        die("Connection failed: " . $conn->connect_error);
+    }
+  
+    //echo "DEBUG: Connected successfully (". $conn->host_info. ") <br>";
+    
+}
+
+// Function for inserting records to a database 
+function insertEntry()
+{
+    global $conn;
+    
+    $eId = $_POST['eId'];
+    $eDate = $_POST['eDate'];
+    $eTitle = $_POST['eTitle'];
+    $eText = $_POST['eText'];
+    $eURL = $_POST['eURL'];
+    $eGroup = $_POST['eGroup'];
+        
+    if (!empty($eDate) && !empty($eTitle))
+    {
+        $sql = "insert into EntryJournal (eId, eDate, eTitle, eText, eURL, eGroup)" .
+                    " values ('$eId', '$eDate', '$eTitle', '$eText', '$eURL', '$eGroup')";
+        if ($conn->query ($sql) == TRUE) 
+        {
+            //echo "DEBUG: Record added <br>";
+        }
+        else
+        {
+            echo "Could not add record: " . $conn->connect_error . "<br>";
+        }
+    } 
+    else
+    {
+        echo "Must provide an Id, Date, Title, Text, and Group to enter a record <br>";
+        $action = 'showInsertForm';
+    }
+}
+
+function deleteEntry()
+{
+    global $conn;
+    $eId = $_POST['eId'];
+    if (!empty($eId))
+    {
+        $sql = "delete from EntryJournal where eID = '$eId'";
+        //echo $sql . "<br>";
+        if ($conn->query ($sql) == TRUE) 
+        {
+            //echo "DEBUG: Record deleted <br>";
+        }
+        else
+        {
+            echo "Could not delete record: " . $conn->connect_error . "<br>";
+        }
+    }
+    else
+    {
+        echo "Must provide an Id to delete a record<br>";
+    }
+}
+
+function searchEntries()
+{
+    if (isset($_POST['searchNames']))
+    {        
+    
+    global $conn;
+    global $thisPHP;
+    $search = $conn->real_escape_string($_POST['search']);
+        
+    echo "<form class='exitJournalForm' action='logout.php' method='post'>";
+    echo "<input id='goBack' type='submit' value='Log Out'>";
+    echo "</form>";
+    
+    echo "<form id='form' action='{$thisPHP}' method='post'>";
+    echo "<fieldset><legend>Database Management</legend>";
+    echo "<table id='dbmgmtTable'>";
+    echo "<tr><td><input type='submit' name='showInsertForm' value='Add New Entry'></td><td><input type='text' name='search' placeholder='Search here...'>&nbsp&nbsp<input type='submit' name='searchNames' value='Search'></td><td><input type='submit' name='fullDisplay' value='Clear Results'></td></tr>";
+    echo "</table>";
+    echo "</fieldset></form>";
+        
+    if ($search == '')
+    {
+        echo "<p id='p'>You didn't search for anything, please try again.</p>";
+    }
+        
+    else
+    {
+        $sqlSearch = "SELECT * FROM EntryJournal WHERE eTitle LIKE '%$search%'";
+        $resultSearch = $conn->query($sqlSearch);
+        
+    echo "<p id='p'>You searched for: <b>$search</b></p>";
+    
+    if ($resultSearch->num_rows > 0) 
+    {         
+        echo "<table id='studentdbTable'>";
+        echo "<thead id='studentdbTableHead'><td colspan='7'><h3>Journal Entries</h3></td>";
+        echo "<tr id='studentdbTableRow'><td>Id</td> <td>Date</td> <td>Title</td><td>Text</td><td>URL</td>";
+        echo "<td>Group</td> <td> Delete? </td></tr>";   
+        
+        while($rowSearch = $resultSearch->fetch_assoc()) 
+        {
+            echo "<tbody id='studentdbTableBody'><tr>";
+            $eId = $rowSearch["eId"];
+            echo  "<td>" . $eId . "  </td> <td> " . $rowSearch["eDate"] . 
+                  " </td> <td> " . $rowSearch["eTitle"] . 
+    		      " </td> <td> " . $rowSearch["eText"] . 
+                  "</td>  <td> " . $rowSearch["eURL"] . 
+                  "</td>  <td> " . $rowSearch["eGroup"] .
+                  "</td>  <td id='buttonAlign'> "; 
+               
+            echo "<form action='{$thisPHP}' method='post' style='display:inline' >";
+            echo "<input type='hidden' name='eId' value='{$eId}'>";
+            echo "<input id='deleteButton' type='submit' name='btnDelete' value='Delete'></form>";
+            echo "</td></tr></tbody>";
+        }
+        
+        echo "</table>";
+    } 
+    else 
+    {
+        echo "<table id='studentdbTable'>";
+        echo "<thead id='studentdbTableHead'><td colspan='7'><h3>Journal Entry Database</h3></td>";
+        echo "<tr id='studentdbTableRow'><td>Id</td> <td>Date</td> <td>Title</td><td>Text</td> ";
+        echo "<td>URL</td><td>Group</td> <td> Delete? </td></tr>";  
+        echo "<tr id='noResults'><td colspan='7'><h4>0 results</h4></td></tr>";
+    }  
+    }
+        
+    
+    }
+}
+
+
+function showJournalEntries()
+{
+    global $conn;
+    global $thisPHP;
+    
+    echo "<form class='exitJournalForm' action='logout.php' method='post'>";
+    echo "<input id='goBack' type='submit' value='Log Out'>";
+    echo "</form>";
+    
+    echo "<form id='form' action='{$thisPHP}' method='post'>";
+    echo "<fieldset><legend>Database Management</legend>";
+    echo "<table id='dbmgmtTable'>";
+    echo "<tr><td><input type='submit' name='showInsertForm' value='Add New Entry'></td><td><input type='text' name='search' placeholder='Search here...'>&nbsp&nbsp<input type='submit' name='searchNames' value='Search'></td><td><input type='submit' name='fullDisplay' value='Clear Results'></td></tr>";
+    echo "</table>";
+    echo "</fieldset></form>";
+    
+    $sql = "SELECT * FROM EntryJournal ORDER BY eGroup ASC, eDate DESC";
+    $result = $conn->query($sql);
+    
+    if ($result->num_rows > 0) 
+    {         
+        echo "<table id='studentdbTable'>";
+        echo "<thead id='studentdbTableHead'><td colspan='7'><h3>Journal Entries</h3></td>";
+        echo "<tr id='studentdbTableRow'><td>Id</td> <td>Date</td> <td>Title</td><td>Text</td><td>URL</td> ";
+        echo "<td>Group</td> <td> Delete? </td></tr>";   
+        while($row = $result->fetch_assoc()) 
+        {
+            echo "<tbody id='studentdbTableBody'><tr>";
+            $eId = $row["eId"];
+            echo  "<td>" . $eId . "  </td> <td> " . $row["eDate"] . 
+                  " </td> <td> " . $row["eTitle"] . 
+    		      " </td> <td> " . $row["eText"] . 
+                  "</td>  <td> " . $row["eURL"] . 
+                  "</td>  <td> " . $row["eGroup"] . 
+                  "</td>  <td id='buttonAlign'> "; 
+               
+            echo "<form action='{$thisPHP}' method='post' style='display:inline' >";
+            echo "<input type='hidden' name='eId' value='{$eId}'>";
+            echo "<input id='deleteButton' type='submit' name='btnDelete' value='Delete'></form>";
+            echo "</td></tr></tbody>";
+        }
+        
+        echo "</table>";
+    } 
+    else 
+    {
+        echo "<table id='studentdbTable'>";
+        echo "<thead id='studentdbTableHead'><td colspan='7'><h3>Journal Entries</h3></td>";
+        echo "<tr id='studentdbTableRow'><td>Id</td> <td>Date</td> <td>Title</td><td>Text</td><td>URL</td> ";
+        echo "<td>Group</td> <td> Delete? </td></tr>";  
+        echo "<tr id='noResults'><td colspan='7'><h4>0 results</h4></td></tr>";
+    }
+}
+/*
+function displayInsertForm()
+{
+    global $thisPHP;
+    
+    // A heredoc for specifying really long strings
+    $str = <<<EOD
+    <form id="form" action='{$thisPHP}' method='post'>
+    <fieldset>
+        <legend>Student Data Entry</legend> 
+        <table id="dbmgmtTable2">
+                    <tr>
+                        <td>Grizz ID:</td>
+                        <td><input type="text" name="gid" size="10"></td>
+                    </tr>
+                    <tr>
+                        <td>Name:</td>
+                        <td><input type="text" name="name" size="40"></td>
+                    </tr>
+                    <tr>
+                        <td>Email:</td>
+                        <td><input type="email" name="email" size="40"></td>
+                    </tr>
+                    <tr>
+                        <td>Phone:</td>
+                        <td><input type="tel" name="phone" size="14"></td>
+                    </tr>
+                    <tr>
+                        <td>Standing:</td>
+                        <td><input type="text" name="standing" list="levels">
+                        <datalist id="levels">
+                                <option value="Freshman"></option>
+                                <option value="Sophomore"></option>
+                                <option value="Junior"></option>
+                                <option value="Senior"></option>
+                                <option value="Graduate"></option>
+                            </datalist>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><input type="submit" name="btnInsert" value="Submit"></td>
+                        <td><input id="deleteButton" type="reset" name="btnReset" value="Clear"></td>
+                    </tr>
+                    <tr>
+                        <td><input id="goBack" type="submit" name="goBack" value="Go Back"></td>
+                    </tr>
+                </table>
+            </fieldset>
+    </form>
+EOD;
+
+    echo $str;
+}*/
+?>
